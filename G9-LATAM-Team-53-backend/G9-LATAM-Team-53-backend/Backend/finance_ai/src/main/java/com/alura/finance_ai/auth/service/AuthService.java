@@ -72,6 +72,8 @@ public class AuthService {
     }
 
     public void logout(String token) {
-        tokenInvalidoRepository.save(TokenInvalido.of(token));
+        if (!tokenInvalidoRepository.existsByToken(token)) {
+            tokenInvalidoRepository.save(TokenInvalido.of(token));
+        }
     }
 }
