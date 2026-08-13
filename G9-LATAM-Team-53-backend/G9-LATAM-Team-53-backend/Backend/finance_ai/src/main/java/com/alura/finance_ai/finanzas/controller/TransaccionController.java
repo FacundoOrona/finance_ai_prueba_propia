@@ -1,5 +1,6 @@
 package com.alura.finance_ai.finanzas.controller;
 
+import com.alura.finance_ai.finanzas.client.ClasificadorNoDisponibleException;
 import com.alura.finance_ai.finanzas.dto.TransaccionRequest;
 import com.alura.finance_ai.finanzas.dto.TransaccionResponse;
 import com.alura.finance_ai.finanzas.service.TransaccionService;
@@ -32,6 +33,11 @@ public class TransaccionController {
             String userEmail = authentication.getName();
             TransaccionResponse response = transaccionService.registrarTransaccion(request, userEmail);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ClasificadorNoDisponibleException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Servicio de clasificacion no disponible");
+            error.put("mensaje", "No se pudo clasificar la transaccion. Intente nuevamente.");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Datos de entrada invalidos");

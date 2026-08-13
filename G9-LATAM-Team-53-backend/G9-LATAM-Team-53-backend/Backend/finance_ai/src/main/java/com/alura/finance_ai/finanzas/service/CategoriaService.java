@@ -27,6 +27,11 @@ public class CategoriaService {
         return categoriaRepository.findById(id);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<Categoria> buscarPorNombre(String nombre) {
+        return categoriaRepository.findByNombre(nombre);
+    }
+
    @Transactional
     public Categoria guardarCategoria(Categoria categoria) {
         if (categoriaRepository.existsByNombre(categoria.getNombre())) {

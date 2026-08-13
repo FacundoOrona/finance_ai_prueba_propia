@@ -2,6 +2,8 @@ package com.alura.finance_ai.finanzas.service;
 
 import com.alura.finance_ai.auth.model.User;
 import com.alura.finance_ai.auth.repository.UserRepository;
+import com.alura.finance_ai.finanzas.client.ClasificadorFinancieroClient;
+import com.alura.finance_ai.finanzas.client.dto.ClasificacionResponse;
 import com.alura.finance_ai.finanzas.dto.TransaccionRequest;
 import com.alura.finance_ai.finanzas.dto.TransaccionResponse;
 import com.alura.finance_ai.finanzas.model.Categoria;
@@ -10,26 +12,36 @@ import com.alura.finance_ai.finanzas.repository.TransaccionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Locale;
+
 @Service
 public class TransaccionService {
 
     private final TransaccionRepository transaccionRepository;
     private final UserRepository userRepository;
     private final CategoriaService categoriaService;
+    private final ClasificadorFinancieroClient clasificadorFinancieroClient;
 
     public TransaccionService(TransaccionRepository transaccionRepository,
                               UserRepository userRepository,
-                              CategoriaService categoriaService) {
+                              CategoriaService categoriaService,
+                              ClasificadorFinancieroClient clasificadorFinancieroClient) {
         this.transaccionRepository = transaccionRepository;
         this.userRepository = userRepository;
         this.categoriaService = categoriaService;
+        this.clasificadorFinancieroClient = clasificadorFinancieroClient;
     }
 
     @Transactional
     public TransaccionResponse registrarTransaccion(TransaccionRequest request, String userEmail) {
         User usuario = buscarUsuarioPorEmail(userEmail);
-        Categoria categoria = buscarCategoriaPorId(request.categoriaId());
-        Transaccion transaccion = mapearEntidad(request, usuario, categoria);
+        LocalDate fecha = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires"));
+        ClasificacionResponse clasificacion = clasificadorFinancieroClient.clasificar(
+                request.descripcion(), request.valor(), fecha);
+        Categoria categoria = buscarCategoriaPorNombre(clasificacion.categoriaPredicha());
+        Transaccion transaccion = mapearEntidad(request, usuario, categoria, fecha);
         Transaccion guardada = transaccionRepository.save(transaccion);
         return mapearRespuesta(guardada);
     }
@@ -39,17 +51,22 @@ public class TransaccionService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
 
-    private Categoria buscarCategoriaPorId(Long categoriaId) {
-        return categoriaService.buscarPorId(categoriaId)
-                .orElseThrow(() -> new RuntimeException("Categoria no encontrada"));
+    private Categoria buscarCategoriaPorNombre(String categoriaPredicha) {
+        String nombreNormalizado = categoriaPredicha.trim().toLowerCase(Locale.ROOT);
+        return categoriaService.buscarPorNombre(nombreNormalizado)
+                .orElseThrow(() -> new IllegalStateException(
+                        "La categoria predicha no existe en la base de datos: " + nombreNormalizado));
     }
 
-    private Transaccion mapearEntidad(TransaccionRequest request, User usuario, Categoria categoria) {
+    private Transaccion mapearEntidad(TransaccionRequest request,
+                                      User usuario,
+                                      Categoria categoria,
+                                      LocalDate fecha) {
         return Transaccion.builder()
                 .descripcion(request.descripcion())
                 .valor(request.valor())
                 .categoria(categoria)
-                .fecha(request.fecha())
+                .fecha(fecha)
                 .usuario(usuario)
                 .activa(true)
                 .build();
