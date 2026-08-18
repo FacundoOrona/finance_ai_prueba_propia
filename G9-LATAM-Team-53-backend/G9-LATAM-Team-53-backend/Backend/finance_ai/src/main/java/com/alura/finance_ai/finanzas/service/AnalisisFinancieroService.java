@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -52,10 +53,32 @@ public class AnalisisFinancieroService {
         transaccionRepository.totalGastosPorCategoriaDelPeriodo(usuario, inicioMes, inicioMesSiguiente)
                 .forEach(fila -> gastosPorCategoria.put((String) fila[0], (BigDecimal) fila[1]));
 
+        BigDecimal ingresoMensual = usuario.getIngresoMensual();
+        if (ingresoMensual == null || ingresoMensual.signum() <= 0) {
+            throw new IllegalArgumentException("El usuario debe registrar un ingreso mensual mayor a cero");
+        }
+
+        Map<String, BigDecimal> porcentajePorCategoria = new LinkedHashMap<>();
+        gastosPorCategoria.forEach((categoria, gasto) -> porcentajePorCategoria.put(
+                categoria,
+                gasto.multiply(BigDecimal.valueOf(100))
+                        .divide(ingresoMensual, 2, RoundingMode.HALF_UP)
+        ));
+
+        BigDecimal totalGastado = gastosPorCategoria.values().stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal montoRestante = ingresoMensual.subtract(totalGastado);
+
         String nombreYApellido = usuario.getNombre() + " " + usuario.getApellido();
         String mesYFecha = hoy.format(DateTimeFormatter.ofPattern("MM/uuuu"));
 
-        return new AnalisisFinancieroResponse(nombreYApellido, mesYFecha, gastosPorCategoria);
+        return new AnalisisFinancieroResponse(
+                nombreYApellido,
+                mesYFecha,
+                gastosPorCategoria,
+                porcentajePorCategoria,
+                montoRestante
+        );
     }
 
     @Transactional

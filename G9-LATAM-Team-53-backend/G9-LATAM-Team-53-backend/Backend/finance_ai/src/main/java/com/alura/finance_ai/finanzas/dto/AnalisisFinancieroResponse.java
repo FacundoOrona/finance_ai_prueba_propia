@@ -6,6 +6,8 @@ import java.util.Map;
 public record AnalisisFinancieroResponse(
         String nombreYApellido,
         String mesYFecha,
-        Map<String, BigDecimal> gastosPorCategoria
+        Map<String, BigDecimal> gastosPorCategoria,
+        Map<String, BigDecimal> porcentajePorCategoria,
+        BigDecimal montoRestante
 ) {
 }
