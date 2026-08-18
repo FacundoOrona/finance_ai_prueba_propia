@@ -2,13 +2,18 @@ package com.alura.finance_ai.finanzas.service;
 
 import com.alura.finance_ai.auth.model.User;
 import com.alura.finance_ai.auth.repository.UserRepository;
-import com.alura.finance_ai.finanzas.dto.AnalisisFinancieroResponse;
 import com.alura.finance_ai.finanzas.dto.IngresoMensualResponse;
+import com.alura.finance_ai.finanzas.dto.ResumenMensualResponse;
 import com.alura.finance_ai.finanzas.repository.AnalisisFinancieroRepository;
+import com.alura.finance_ai.finanzas.repository.TransaccionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 
 @Service
@@ -16,15 +21,37 @@ public class AnalisisFinancieroService {
 
     private final UserRepository userRepository;
     private final AnalisisFinancieroRepository analisisFinancieroRepository;
+    private final TransaccionRepository transaccionRepository;
+    private final CategoriaService categoriaService;
 
-    public AnalisisFinancieroService(UserRepository userRepository, AnalisisFinancieroRepository analisisFinancieroRepository) {
+    public AnalisisFinancieroService(UserRepository userRepository,
+                                     AnalisisFinancieroRepository analisisFinancieroRepository,
+                                     TransaccionRepository transaccionRepository,
+                                     CategoriaService categoriaService) {
         this.userRepository = userRepository;
         this.analisisFinancieroRepository = analisisFinancieroRepository;
+        this.transaccionRepository = transaccionRepository;
+        this.categoriaService = categoriaService;
     }
 
-    public AnalisisFinancieroResponse obtenerAnalisisFinanciero(String userEmail) {
-        // TAREA PENDIENTE DEL EQUIPO (Punto 3)
-        return null;
+    @Transactional(readOnly = true)
+    public ResumenMensualResponse obtenerAnalisisFinanciero(String userEmail) {
+        User usuario = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+
+        LocalDate hoy = LocalDate.now(ZoneId.of("America/Argentina/Buenos_Aires"));
+        LocalDate inicioMes = hoy.withDayOfMonth(1);
+        LocalDate inicioMesSiguiente = inicioMes.plusMonths(1);
+
+        Map<String, BigDecimal> gastosPorCategoria = new LinkedHashMap<>();
+        categoriaService.listarCategorias().stream()
+                .sorted((primera, segunda) -> primera.getNombre().compareToIgnoreCase(segunda.getNombre()))
+                .forEach(categoria -> gastosPorCategoria.put(categoria.getNombre(), BigDecimal.ZERO));
+
+        transaccionRepository.totalGastosPorCategoriaDelPeriodo(usuario, inicioMes, inicioMesSiguiente)
+                .forEach(fila -> gastosPorCategoria.put((String) fila[0], (BigDecimal) fila[1]));
+
+        return new ResumenMensualResponse(hoy.getYear(), hoy.getMonthValue(), gastosPorCategoria);
     }
 
     @Transactional
