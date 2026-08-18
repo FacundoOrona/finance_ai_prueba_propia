@@ -19,6 +19,8 @@ import java.util.Locale;
 @Service
 public class TransaccionService {
 
+    private static final String CATEGORIA_POR_DEFECTO = "otros";
+
     private final TransaccionRepository transaccionRepository;
     private final UserRepository userRepository;
     private final CategoriaService categoriaService;
@@ -54,8 +56,9 @@ public class TransaccionService {
     private Categoria buscarCategoriaPorNombre(String categoriaPredicha) {
         String nombreNormalizado = categoriaPredicha.trim().toLowerCase(Locale.ROOT);
         return categoriaService.buscarPorNombre(nombreNormalizado)
-                .orElseThrow(() -> new IllegalStateException(
-                        "La categoria predicha no existe en la base de datos: " + nombreNormalizado));
+                .orElseGet(() -> categoriaService.buscarPorNombre(CATEGORIA_POR_DEFECTO)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "No existe la categoria por defecto: " + CATEGORIA_POR_DEFECTO)));
     }
 
     private Transaccion mapearEntidad(TransaccionRequest request,
