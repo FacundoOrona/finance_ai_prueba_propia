@@ -1,12 +1,11 @@
 package com.alura.finance_ai.finanzas.dto;
 
-import java.util.List;
+import java.math.BigDecimal;
 import java.util.Map;
 
 public record AnalisisFinancieroResponse(
-        String perfilFinanciero,
-        Double probabilidad,
-        Map<String, Double> resumenGastos,
-        List<String> recomendaciones
+        String nombreYApellido,
+        String mesYFecha,
+        Map<String, BigDecimal> gastosPorCategoria
 ) {
 }

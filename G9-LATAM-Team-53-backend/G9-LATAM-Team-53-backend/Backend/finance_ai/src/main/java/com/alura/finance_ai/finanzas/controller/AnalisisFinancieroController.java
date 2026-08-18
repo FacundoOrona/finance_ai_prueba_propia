@@ -1,8 +1,8 @@
 package com.alura.finance_ai.finanzas.controller;
 
+import com.alura.finance_ai.finanzas.dto.AnalisisFinancieroResponse;
 import com.alura.finance_ai.finanzas.dto.IngresoMensualRequest;
 import com.alura.finance_ai.finanzas.dto.IngresoMensualResponse;
-import com.alura.finance_ai.finanzas.dto.ResumenMensualResponse;
 import com.alura.finance_ai.finanzas.service.AnalisisFinancieroService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +26,7 @@ public class AnalisisFinancieroController {
     public ResponseEntity<?> obtenerAnalisisFinanciero(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            ResumenMensualResponse response = analisisService.obtenerAnalisisFinanciero(userEmail);
+            AnalisisFinancieroResponse response = analisisService.obtenerAnalisisFinanciero(userEmail);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new HashMap<>();

@@ -2,8 +2,8 @@ package com.alura.finance_ai.finanzas.service;
 
 import com.alura.finance_ai.auth.model.User;
 import com.alura.finance_ai.auth.repository.UserRepository;
+import com.alura.finance_ai.finanzas.dto.AnalisisFinancieroResponse;
 import com.alura.finance_ai.finanzas.dto.IngresoMensualResponse;
-import com.alura.finance_ai.finanzas.dto.ResumenMensualResponse;
 import com.alura.finance_ai.finanzas.repository.AnalisisFinancieroRepository;
 import com.alura.finance_ai.finanzas.repository.TransaccionRepository;
 import org.springframework.stereotype.Service;
@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -35,7 +36,7 @@ public class AnalisisFinancieroService {
     }
 
     @Transactional(readOnly = true)
-    public ResumenMensualResponse obtenerAnalisisFinanciero(String userEmail) {
+    public AnalisisFinancieroResponse obtenerAnalisisFinanciero(String userEmail) {
         User usuario = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
@@ -51,7 +52,10 @@ public class AnalisisFinancieroService {
         transaccionRepository.totalGastosPorCategoriaDelPeriodo(usuario, inicioMes, inicioMesSiguiente)
                 .forEach(fila -> gastosPorCategoria.put((String) fila[0], (BigDecimal) fila[1]));
 
-        return new ResumenMensualResponse(hoy.getYear(), hoy.getMonthValue(), gastosPorCategoria);
+        String nombreYApellido = usuario.getNombre() + " " + usuario.getApellido();
+        String mesYFecha = hoy.format(DateTimeFormatter.ofPattern("MM/uuuu"));
+
+        return new AnalisisFinancieroResponse(nombreYApellido, mesYFecha, gastosPorCategoria);
     }
 
     @Transactional
